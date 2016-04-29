@@ -79,5 +79,15 @@ func registerCharacter() {
 }
 
 func play() {
-
+    choice := 0
+    name := ""
+    for choice != 2 {
+        fmt.Println("1. Please enter the name of the character")
+        fmt.Println("2. Back")
+        fmt.Scan(&choice)
+        if choice == 1 {
+            fmt.Print("Name of the character:")
+            fmt.Scan(&name)
+        }
+    }
 }
