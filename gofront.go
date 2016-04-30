@@ -51,9 +51,6 @@ func main() {
 }
 
 func registerCharacter() {
-	type Post struct {
-		Name string `json:"name"`
-	}
 	var name string
 	fmt.Println("Please enter name of the character:")
 	_, err := fmt.Scan(&name)
@@ -61,33 +58,68 @@ func registerCharacter() {
 		fmt.Println("Error reading character name: ", err)
 		return
 	}
-	post := Post{Name: name}
-	b, err := json.Marshal(post)
-	if err != nil {
-		fmt.Println("Error while marshalling post:", err)
-	}
-
-	resp, err := http.Post(location + "/api/" + apiver + "/create", "application/json", bytes.NewBuffer(b))
-	if err != nil {
-		fmt.Println("There was an error reading from the server:", err)
-		return
-	}
-
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Printf("Response from the server: %s\n", body)
+    sendMessageToServer("create", name)
 }
 
 func play() {
     choice := 0
     name := ""
-    for choice != 2 {
-        fmt.Println("1. Please enter the name of the character")
-        fmt.Println("2. Back")
+    // Start adventure in a routine.
+    // Display the prompt saying, type 'stop' to stop.
+    // Signal the routine to stop and signal the stop to server.
+    for choice != 3 {
+        var stop chan bool
+        fmt.Println("1. Start adventure")
+        fmt.Println("2. Stop adventure")
+        fmt.Println("3. Back")
         fmt.Scan(&choice)
         if choice == 1 {
             fmt.Print("Name of the character:")
             fmt.Scan(&name)
+            go startAdventure(name, stop)
+        } else if choice == 2 {
+            fmt.Print("Name of the character:")
+            fmt.Scan(&name)
+            sendMessageToServer("stop", name)
+            select {
+        	case stop <- true:
+        	default:
+        	}
         }
     }
+}
+
+func startAdventure(name string, signal chan bool) {
+    var stop bool
+    select {
+    case stop = <-signal:
+    default:
+    }
+
+    if stop == true {
+        return
+    }
+
+    sendMessageToServer("start", name)
+}
+
+func sendMessageToServer(uri, name string) {
+    type Post struct {
+        Name string `json:"name"`
+    }
+    post := Post{Name: name}
+    b, err := json.Marshal(post)
+    if err != nil {
+        fmt.Println("Error while marshalling post:", err)
+    }
+
+    resp, err := http.Post(location + "/api/" + apiver + "/" + uri, "application/json", bytes.NewBuffer(b))
+    if err != nil {
+        fmt.Println("There was an error reading from the server:", err)
+        return
+    }
+
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+    fmt.Printf("Response from the server: %s\n", body)
 }
