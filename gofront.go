@@ -77,6 +77,7 @@ func play() {
             fmt.Print("Name of the character:")
             fmt.Scan(&name)
             go startAdventure(name, stop)
+            go displayInformation(name, stop)
         } else if choice == 2 {
             fmt.Print("Name of the character:")
             fmt.Scan(&name)
@@ -101,6 +102,28 @@ func startAdventure(name string, signal chan bool) {
     }
 
     sendMessageToServer("start", name)
+}
+
+func displayInformation(name string, signal chan bool) {
+    var stop bool
+    select {
+    case stop = <-signal:
+    default:
+    }
+
+    if stop == true {
+        return
+    }
+
+    resp, err := http.Get(location + "/api/" + apiver + "/load/" + name)
+    if err != nil {
+        fmt.Println("There was an error reading from the server:", err)
+        return
+    }
+
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+    fmt.Printf("Response from the server: %s\n", body)
 }
 
 func sendMessageToServer(uri, name string) {
