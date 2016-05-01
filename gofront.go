@@ -94,10 +94,6 @@ func play() {
 func displayInformation(name string, signal chan bool) {
     var stop bool
 	for stop == false {
-		select {
-		case stop = <-signal:
-		default:
-		}
 		resp, err := http.Get(location + "/api/" + apiver + "/load/" + name)
 		if err != nil {
 			fmt.Println("There was an error reading from the server:", err)
@@ -110,6 +106,10 @@ func displayInformation(name string, signal chan bool) {
 		dec.Decode(&p)
 		fmt.Printf("Name: %s; Level: %d; Items: %#v; Body: %#v\n\n", p.Name, p.Level, p.Inventory.Items, p.Body)
 		time.Sleep(time.Millisecond * 1000)
+        select {
+        case stop = <-signal:
+        default:
+        }
 	}
 }
 
