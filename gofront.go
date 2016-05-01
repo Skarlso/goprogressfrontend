@@ -122,8 +122,10 @@ func displayInformation(name string, signal chan bool) {
     }
 
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
-    fmt.Printf("Response from the server: %s\n", body)
+    var p Character
+    dec := json.NewDecoder(resp.Body)
+    dec.Decode(&p)
+    fmt.Printf("Response from the server: %v\n", p)
 }
 
 func sendMessageToServer(uri, name string) {
