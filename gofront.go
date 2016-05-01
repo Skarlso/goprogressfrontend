@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 var location string
@@ -58,93 +59,77 @@ func registerCharacter() {
 		fmt.Println("Error reading character name: ", err)
 		return
 	}
-    sendMessageToServer("create", name)
+	sendMessageToServer("create", name)
 }
 
 func play() {
-    choice := 0
-    name := ""
-    // Start adventure in a routine.
-    // Display the prompt saying, type 'stop' to stop.
-    // Signal the routine to stop and signal the stop to server.
-    for choice != 3 {
-        var stop chan bool
-        fmt.Println("1. Start adventure")
-        fmt.Println("2. Stop adventure")
-        fmt.Println("3. Back")
-        fmt.Scan(&choice)
-        if choice == 1 {
-            fmt.Print("Name of the character:")
-            fmt.Scan(&name)
-            go startAdventure(name, stop)
-            go displayInformation(name, stop)
-        } else if choice == 2 {
-            fmt.Print("Name of the character:")
-            fmt.Scan(&name)
-            sendMessageToServer("stop", name)
-            select {
-        	case stop <- true:
-        	default:
-        	}
-        }
-    }
-}
-
-func startAdventure(name string, signal chan bool) {
-    var stop bool
-    select {
-    case stop = <-signal:
-    default:
-    }
-
-    if stop == true {
-        return
-    }
-
-    sendMessageToServer("start", name)
+	choice := 0
+	name := ""
+	// Start adventure in a routine.
+	// Display the prompt saying, type 'stop' to stop.
+	// Signal the routine to stop and signal the stop to server.
+	for choice != 3 {
+		var stop chan bool
+		fmt.Println("1. Start adventure")
+		fmt.Println("2. Stop adventure")
+		fmt.Println("3. Back")
+		fmt.Scan(&choice)
+		if choice == 1 {
+			fmt.Print("Name of the character:")
+			fmt.Scan(&name)
+			sendMessageToServer("start", name)
+			go displayInformation(name, stop)
+		} else if choice == 2 {
+			fmt.Print("Name of the character:")
+			fmt.Scan(&name)
+			sendMessageToServer("stop", name)
+			select {
+			case stop <- true:
+			default:
+			}
+		}
+	}
 }
 
 func displayInformation(name string, signal chan bool) {
     var stop bool
-    select {
-    case stop = <-signal:
-    default:
-    }
+	for stop == false {
+		select {
+		case stop = <-signal:
+		default:
+		}
+		resp, err := http.Get(location + "/api/" + apiver + "/load/" + name)
+		if err != nil {
+			fmt.Println("There was an error reading from the server:", err)
+			return
+		}
 
-    if stop == true {
-        return
-    }
-
-    resp, err := http.Get(location + "/api/" + apiver + "/load/" + name)
-    if err != nil {
-        fmt.Println("There was an error reading from the server:", err)
-        return
-    }
-
-    defer resp.Body.Close()
-    var p Character
-    dec := json.NewDecoder(resp.Body)
-    dec.Decode(&p)
-    fmt.Printf("Response from the server: %v\n", p)
+		defer resp.Body.Close()
+		var p Character
+		dec := json.NewDecoder(resp.Body)
+		dec.Decode(&p)
+		fmt.Printf("Name: %s; Level: %d; Items: %#v; Body: %#v\n\n", p.Name, p.Level, p.Inventory.Items, p.Body)
+		time.Sleep(time.Millisecond * 1000)
+	}
 }
 
 func sendMessageToServer(uri, name string) {
-    type Post struct {
-        Name string `json:"name"`
-    }
-    post := Post{Name: name}
-    b, err := json.Marshal(post)
-    if err != nil {
-        fmt.Println("Error while marshalling post:", err)
-    }
+	type Post struct {
+		Name string `json:"name"`
+	}
+	post := Post{Name: name}
+	b, err := json.Marshal(post)
+	if err != nil {
+		fmt.Println("Error while marshalling post:", err)
+	}
 
-    resp, err := http.Post(location + "/api/" + apiver + "/" + uri, "application/json", bytes.NewBuffer(b))
-    if err != nil {
-        fmt.Println("There was an error reading from the server:", err)
-        return
-    }
+	resp, err := http.Post(location+"/api/"+apiver+"/"+uri, "application/json", bytes.NewBuffer(b))
+	if err != nil {
+		fmt.Println("There was an error reading from the server:", err)
+		return
+	}
 
-    defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
-    fmt.Printf("Response from the server: %s\n", body)
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Printf("Response from the server: %s\n", body)
 }
