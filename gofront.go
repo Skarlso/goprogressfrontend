@@ -68,8 +68,8 @@ func play() {
 	// Start adventure in a routine.
 	// Display the prompt saying, type 'stop' to stop.
 	// Signal the routine to stop and signal the stop to server.
+    stop := make(chan bool, 1)
 	for choice != 3 {
-		var stop chan bool
 		fmt.Println("1. Start adventure")
 		fmt.Println("2. Stop adventure")
 		fmt.Println("3. Back")
@@ -93,7 +93,16 @@ func play() {
 
 func displayInformation(name string, signal chan bool) {
     var stop bool
-	for stop == false {
+	for {
+        select {
+        case stop = <-signal:
+        default:
+        }
+
+        if stop {
+            break
+        }
+
 		resp, err := http.Get(location + "/api/" + apiver + "/load/" + name)
 		if err != nil {
 			fmt.Println("There was an error reading from the server:", err)
@@ -104,12 +113,8 @@ func displayInformation(name string, signal chan bool) {
 		var p Character
 		dec := json.NewDecoder(resp.Body)
 		dec.Decode(&p)
-		fmt.Printf("Name: %s; Level: %d; Items: %#v; Body: %#v\n\n", p.Name, p.Level, p.Inventory.Items, p.Body)
+		fmt.Printf("Name: %s; Level: %d;\n\n", p.Name, p.Level)
 		time.Sleep(time.Millisecond * 1000)
-        select {
-        case stop = <-signal:
-        default:
-        }
 	}
 }
 
