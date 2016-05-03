@@ -65,9 +65,6 @@ func registerCharacter() {
 func play() {
 	choice := 0
 	name := ""
-	// Start adventure in a routine.
-	// Display the prompt saying, type 'stop' to stop.
-	// Signal the routine to stop and signal the stop to server.
     stop := make(chan bool, 1)
 	for choice != 3 {
 		fmt.Println("1. Start adventure")
