@@ -110,7 +110,11 @@ func displayInformation(name string, signal chan bool) {
 		var p Character
 		dec := json.NewDecoder(resp.Body)
 		dec.Decode(&p)
-		fmt.Printf("Name: %s; Level: %d;\n\n", p.Name, p.Level)
+		fmt.Printf("Name: %s; Level: %d; Money: %d; Hp:%d;\n", p.Name, p.Level, p.Gold, p.Hp)
+		// body,_ := json.MarshalIndent(p.Body, "", " ")
+		// fmt.Printf("Body: %s;\n\n", body)
+		stats,_ := json.MarshalIndent(p.Stats, "", " ")
+		fmt.Printf("Stats: %s;\n\n", stats)
 		time.Sleep(time.Millisecond * 1000)
 	}
 }
